@@ -1,0 +1,26 @@
+{
+  "benchmark": "integrate",
+  "notes": "Local wall-clock measurements; final CX3 Rome results should be gathered on the cluster.",
+  "results": [
+    {
+      "threads": 1,
+      "measured_time_s": 2.029951059,
+      "measured_speedup": 1.0
+    },
+    {
+      "threads": 16,
+      "measured_time_s": 0.384613043,
+      "measured_speedup": 5.277905
+    },
+    {
+      "threads": 64,
+      "measured_time_s": 0.176282300,
+      "measured_speedup": 11.515342
+    },
+    {
+      "threads": 128,
+      "measured_time_s": 0.134035939,
+      "measured_speedup": 15.144827
+    }
+  ]
+}
