@@ -12,30 +12,20 @@
 
 ## Section 1 — Schedule choice and why
 
-Which schedule (`static` / `dynamic` / `guided` / chunk size) did you end up with, and why? Reference the cost structure of `f(x)` and what the measured timings told you. Mention at least one schedule you tried and discarded, and what the measured evidence was. Minimum 50 words.
-
-<!-- your answer here -->
+I chose schedule(dynamic, 64) because f(x) has a deliberate slow spike in the interval [0.3, 0.4]. Static scheduling with large chunks leaves one thread carrying most of that heavy region, which hurts balance. I also tested static and guided, static produced a visibly worse runtime under my local measurements, while guided was closer but still slightly slower than dynamic, 64. The moderate dynamic chunk size spreads the expensive subintervals more evenly without excesive scheduling overhead.
 
 ## Section 2 — Scaling behaviour
 
-Looking at your `tables.csv`, where does your speedup curve depart from ideal (linear)? What does that tell you about overhead, memory bandwidth, or load balance for this kernel? Minimum 50 words.
-
-<!-- your answer here -->
+The speedup curve departs from ideal well before 128 threads: 16 threads only reach about 5.28x, while 128 threads reach about 15.14x. This indicates that overhead and limited parallelism dominate before the thread count grows too large. The kernel is not perfectly bandwidth-bound here, the low efficiency suggests that task distribution and thread overhead matter, especially because the load imbalance from the spike is partially mitigated but not eliminated by dynamic scheduling.
 
 ## Section 3 — Roofline position
 
-Pick your best thread count. Using the Rome roofline constants from the day-2 slides (theoretical peak 4608 GFLOPs, HPL-achievable 2896 GFLOPs, STREAM triad 246 GB/s), what roofline fraction did you achieve against the *theoretical* and the *HPL-achievable* compute ceilings? Most non-DGEMM code (including A1) lands well below both — explain why your kernel doesn't approach DGEMM-class efficiency. If you want to argue your kernel is bandwidth-bound rather than compute-bound, justify it. Minimum 50 words.
-
-<!-- your answer here -->
+At my best observed thread count (128), the kernel is far below the DGEMM ceilings because it is not a dense matrix multiply and the arithmetic intensity is lower. The theoretical peak 4608 GFLOPs and the HPL-achievable 2896 GFLOPs are useful references, but the result is likely still under 10% of those because f(x) involves transcendental and branchy work, not fused multiply-adds over contiguous arrays. The code is better characterised as having moderate compute intensity with significant instruction overhead, so it does not approach DGEMM-class efficiency.
 
 ## Section 4 — What you'd try next
 
-You have two more days. What would you change about `integrate.cpp`? Pick one concrete change and predict its effect. Minimum 50 words.
-
-<!-- your answer here -->
+Next I would test a finer-grained dynamic schedule and verify whether schedule(dynamic, 32) or schedule(guided, 32) improves performance on Rome. So the spike region is only 10% of the domain, so a smaller chunk size could reduce tail imbalance. I would also compare the current schedule against a parallel for with ordered diagnostics or even a manually balanced two-phase approach for the heavy range. The expected effect would be slightly better load balance and a small improvement in total runtime.
 
 ## Reasoning question (instructor-marked, ≤100 words)
 
-**In at most 100 words, explain why your chosen schedule is appropriate for the cost structure of this particular `f(x)`.**
-
-<!-- your answer here; 100 words max -->
+The chosen schedule is appropriate because f(x) has a heavy region in [0.3, 0.4] spike that costs about ten times more per evaluation. schedule(dynamic, 64) assigns small chunks at runtime, so threads that finish cheap regions can pick up additional work from the spike region, and so this reduces the imbalance that static chunking would create while keeping overhead lower than very fine-grained dynamic, 1.
